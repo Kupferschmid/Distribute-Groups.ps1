@@ -2,8 +2,8 @@
     .SYNOPSIS
         Distribute-Groups.ps1 collects the members from any number of AD groups and distributes them equally to any number of target AD groups 
     .DESCRIPTION
-        This Script can used within a schedul to dynamically distribute equally AD Group Members to a bunch of AD Groups.
-        We used this to distribute the VDI-Users to several Horizon Desktop-Pools  
+        This script can be used within a schedule to dynamically distribute members of AD groups evenly across a number of AD groups.
+        We have used this script to distribute VDI users across multiple Horizon desktop pools.  
     .NOTES
         © tempero.it GmbH
         Klaus Kupferschnmid
