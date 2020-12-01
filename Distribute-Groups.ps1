@@ -12,7 +12,7 @@
         Requires Module ActiveDirectory (Import-Module ActiveDirectory)
         Add-WindowsCapability -Online -Name Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
     .LINK
-        \\ws16-auto.universe.hhp\c$\Scripts\UserManager.ps1
+        https://github.com/Kupferschmid/Distribute-Groups.ps1
 #>
 
 # Input Variables
@@ -59,8 +59,7 @@ if ($destinationGroupMembers.count -gt 0)
 $noStockMembers = Compare-Object  $destinationGroupMembers.SamAccountName $sourceGroupMembers
 $newMembers = ($noStockMembers | Where-Object SideIndicator -eq '=>').InputObject
 $removedMembers = ($noStockMembers | Where-Object SideIndicator -eq '<=').InputObject
-}
-else {
+} else {
     $newMembers = $sourceGroupMembers
 }
 
@@ -77,8 +76,7 @@ foreach ($destinationGroupMember in $destinationGroupMembers ) {
             Exit
         }
         $destinationGroups | ForEach-Object -Process {if ($_.Name -eq $destinationGroupMember.DestinationGroupName) { $_.MemberCount = $_.MemberCount -1}}
-    }
-    else {
+    } else {
         $newDestinationGroupMembers += $destinationGroupMember
     }
 }
