@@ -1,13 +1,13 @@
 ﻿<#
     .SYNOPSIS
-        Distribute-Groups.ps1 collects the members from any number of AD groups and distributes them equally to any number of target AD groups 
+        Distribute-Groups.ps1 collects the members from any number of AD groups and distributes them equally to any number of target AD groups. 
     .DESCRIPTION
         This script can be used within a schedule to dynamically distribute members of AD groups evenly across a number of AD groups.
-        We have used this script to distribute VDI users across multiple Horizon desktop pools.  
+        We have used this script to distribute VDI users across multiple Horizon desktop pools.   
     .NOTES
         © tempero.it GmbH
         Klaus Kupferschnmid
-        Version 1.0 2020-12-01
+        Version 1.1 2020-12-01
     .COMPONENT
         Requires Module ActiveDirectory (Import-Module ActiveDirectory)
         Add-WindowsCapability -Online -Name Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0
@@ -24,7 +24,11 @@ $destinationGroupNameArray =@('vdiPool_RZ','vdiPool_BRZ')
 $sourceGroupMembers       = @()
 foreach ($sourceGroupName in $sourceGroupNameArray) {
     if(Get-ADGroup -Identity $sourceGroupName) {
-        $sourceGroupMembers      += (Get-ADGroupMember $sourceGroupName).SamAccountName
+        $members = (Get-ADGroupMember $sourceGroupName).SamAccountName
+        if ($members) {
+            $sourceGroupMembers += $members
+        }
+        
     } else {
         Write-Host "AD-Gruppe '"$sourceGroupName"' existiert nicht - ABBRUCH!" -ForegroundColor 'Red'
         Exit
@@ -36,16 +40,17 @@ $destinationGroupMembers  = @()
 foreach ($destinationGroupName in $destinationGroupNameArray) {
     if(Get-ADGroup -Identity $destinationGroupName) {
         $members = (Get-ADGroupMember $destinationGroupName).SamAccountName
-        
-        $destinationGroup = New-Object System.Object
-        $destinationGroup | Add-Member -type NoteProperty -name Name -value $destinationGroupName
-        $destinationGroup | Add-Member -type NoteProperty -name MemberCount -Value $members.count
-        $destinationGroups += $destinationGroup
-        foreach ($member in $members){
-            $destinationGroupMember = New-Object System.Object
-            $destinationGroupMember | Add-Member -type NoteProperty -name DestinationGroupName -value $destinationGroupName
-            $destinationGroupMember | Add-Member -type NoteProperty -name SamAccountName -value $member
-            $destinationGroupMembers += $destinationGroupMember
+        if ($members) {
+            $destinationGroup = New-Object System.Object
+            $destinationGroup | Add-Member -type NoteProperty -name Name -value $destinationGroupName
+            $destinationGroup | Add-Member -type NoteProperty -name MemberCount -Value $members.count
+            $destinationGroups += $destinationGroup
+            foreach ($member in $members){
+                $destinationGroupMember = New-Object System.Object
+                $destinationGroupMember | Add-Member -type NoteProperty -name DestinationGroupName -value $destinationGroupName
+                $destinationGroupMember | Add-Member -type NoteProperty -name SamAccountName -value $member
+                $destinationGroupMembers += $destinationGroupMember
+            }
         }
     } else {
         Write-Host "AD-Gruppe '"$destinationGroupName"' existiert nicht - ABBRUCH!" -ForegroundColor 'Red'
@@ -66,7 +71,7 @@ $removedMembers = ($noStockMembers | Where-Object SideIndicator -eq '<=').InputO
 # remove Members in DestinationGroups
 $newDestinationGroupMembers = @()
 foreach ($destinationGroupMember in $destinationGroupMembers ) {
-    if ($destinationGroupMember.SamAccountName -contains  $removedMembers ){
+    if ( $removedMembers -contains $destinationGroupMember.SamAccountName ){
         Write-Host "Aus der AD-Gruppe '"$destinationGroupMember.DestinationGroupName"' wird das Gruppen-Mitglied '"$destinationGroupMember.SamAccountName"' gelöscht." -ForegroundColor Green
         try {
             Remove-ADGroupMember -Identity $destinationGroupMember.DestinationGroupName -Members $destinationGroupMember.SamAccountName -confirm:$false #-WhatIf
